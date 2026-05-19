@@ -1,0 +1,61 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "dependencyDashboard": true,
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Update Android Gradle Plugin in the experiment version manifest",
+      "managerFilePatterns": [
+        "/^versions_to_monitor\\.json$/"
+      ],
+      "matchStrings": [
+        "\"agp\"\\s*:\\s*\"(?<currentValue>[^\"]+)\""
+      ],
+      "datasourceTemplate": "maven",
+      "depNameTemplate": "com.android.tools.build:gradle",
+      "registryUrlTemplate": "https://dl.google.com/dl/android/maven2/",
+      "versioningTemplate": "maven"
+    },
+    {
+      "customType": "regex",
+      "description": "Update Kotlin Gradle Plugin in the experiment version manifest",
+      "managerFilePatterns": [
+        "/^versions_to_monitor\\.json$/"
+      ],
+      "matchStrings": [
+        "\"kotlin\"\\s*:\\s*\"(?<currentValue>[^\"]+)\""
+      ],
+      "datasourceTemplate": "maven",
+      "depNameTemplate": "org.jetbrains.kotlin:kotlin-gradle-plugin",
+      "versioningTemplate": "maven"
+    },
+    {
+      "customType": "regex",
+      "description": "Update Gradle in the experiment version manifest",
+      "managerFilePatterns": [
+        "/^versions_to_monitor\\.json$/"
+      ],
+      "matchStrings": [
+        "\"gradle\"\\s*:\\s*\"(?<currentValue>[^\"]+)\""
+      ],
+      "datasourceTemplate": "gradle-version",
+      "depNameTemplate": "gradle",
+      "versioningTemplate": "gradle"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchManagers": [
+        "custom.regex"
+      ],
+      "labels": [
+        "dependencies",
+        "experiment"
+      ]
+    }
+  ],
+  "prConcurrentLimit": 3
+}

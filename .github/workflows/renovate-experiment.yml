@@ -1,0 +1,55 @@
+name: Renovate Experiment
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  experiment:
+    if: github.event.pull_request.user.login == 'renovate[bot]' || startsWith(github.head_ref, 'renovate/')
+    runs-on: ubuntu-latest
+    env:
+      PROJECT_GENERATOR_VERSION: v0.6.2
+      GITHUB_TOKEN: ${{ secrets.EXPERIMENT_GITHUB_TOKEN }}
+      RENOVATE_PR_NUMBER: ${{ github.event.pull_request.number }}
+      RENOVATE_REPO: ${{ github.repository }}
+      RENOVATE_VERSIONS_PATH: versions_to_monitor.json
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Fetch ProjectGenerator
+        run: |
+          curl -L "https://github.com/cdsap/ProjectGenerator/releases/download/${PROJECT_GENERATOR_VERSION}/projectGenerator" --output projectGenerator
+          chmod 0755 projectGenerator
+
+      - name: Create and dispatch experiment
+        run: |
+          python3 -m orchestrator.main \
+            --renovate-base-ref "${{ github.event.pull_request.base.sha }}" \
+            --renovate-head-ref "${{ github.event.pull_request.head.sha }}" \
+            --renovate-repo-dir . \
+            --renovate-versions-path "${RENOVATE_VERSIONS_PATH}" \
+            --project-generator ./projectGenerator \
+            --github-owner "${{ github.repository_owner }}" \
+            --repo-prefix experiment \
+            --project-option modules=100 \
+            --task assembleDebug \
+            --verify-variants \
+            --iterations 10 \
+            --mode "dependencies cache" \
+            --push \
+            --dispatch
