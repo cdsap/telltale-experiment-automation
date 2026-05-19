@@ -13,6 +13,9 @@ from orchestrator.modifier import Modifier
 from orchestrator.renovate import detect_changes_from_git
 from orchestrator.trigger import Trigger, WorkflowDispatch
 
+FOOJAY_TOOLCHAIN_PLUGIN_ID = "org.gradle.toolchains.foojay-resolver-convention"
+FOOJAY_TOOLCHAIN_PLUGIN_VERSION = "1.0.0"
+
 
 def main() -> None:
     args = parse_args()
@@ -51,6 +54,7 @@ def run_experiment(change: VersionChange, args: argparse.Namespace, project_opti
     workspace.mkdir(parents=True, exist_ok=True)
 
     Generator(args.project_generator).generate_project(baseline_dir, project_options)
+    configure_gradle_toolchain_provisioning(baseline_dir)
     apply_baseline_version(baseline_dir, change)
     shutil.copytree(baseline_dir, variant_dir)
     Modifier(variant_dir).apply_change(change.component, change.new_version)
@@ -217,6 +221,47 @@ def parse_optional_int(value: str | None) -> int | None:
 def apply_baseline_version(project_dir: Path, change: VersionChange) -> None:
     if change.old_version:
         Modifier(project_dir).apply_change(change.component, change.old_version)
+
+
+def configure_gradle_toolchain_provisioning(project_dir: Path) -> None:
+    settings_file = project_dir / "settings.gradle.kts"
+    if not settings_file.exists():
+        return
+
+    contents = settings_file.read_text(encoding="utf-8")
+    if FOOJAY_TOOLCHAIN_PLUGIN_ID in contents:
+        return
+
+    plugin_line = f'    id("{FOOJAY_TOOLCHAIN_PLUGIN_ID}") version "{FOOJAY_TOOLCHAIN_PLUGIN_VERSION}"\n'
+    lines = contents.splitlines(keepends=True)
+
+    for index, line in enumerate(lines):
+        if line.strip() == "plugins {":
+            lines.insert(index + 1, plugin_line)
+            settings_file.write_text("".join(lines), encoding="utf-8")
+            return
+
+    insert_at = _settings_plugin_block_insert_index(lines)
+    plugin_block = [
+        "plugins {\n",
+        plugin_line,
+        "}\n",
+        "\n",
+    ]
+    lines[insert_at:insert_at] = plugin_block
+    settings_file.write_text("".join(lines), encoding="utf-8")
+
+
+def _settings_plugin_block_insert_index(lines: list[str]) -> int:
+    for index, line in enumerate(lines):
+        if line.strip().startswith("pluginManagement"):
+            depth = 0
+            for block_index in range(index, len(lines)):
+                depth += lines[block_index].count("{")
+                depth -= lines[block_index].count("}")
+                if depth == 0:
+                    return block_index + 1
+    return 0
 
 
 def safe_name(value: str) -> str:

@@ -120,6 +120,61 @@ class MainTest(unittest.TestCase):
             main_module.apply_baseline_version(Path("project"), VersionChange("agp", "9.2.0", "9.2.1"))
             modifier.return_value.apply_change.assert_called_once_with("agp", "9.2.0")
 
+    def test_configures_gradle_toolchain_provisioning_in_settings_plugins_block(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            settings = root / "settings.gradle.kts"
+            settings.write_text(
+                '\n'.join(
+                    [
+                        "pluginManagement {",
+                        "    repositories {",
+                        "        gradlePluginPortal()",
+                        "    }",
+                        "}",
+                        "plugins {",
+                        '    id("com.example.settings") version "1.0.0"',
+                        "}",
+                        'rootProject.name = "sample"',
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            main_module.configure_gradle_toolchain_provisioning(root)
+
+            self.assertIn(
+                'id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"',
+                settings.read_text(encoding="utf-8"),
+            )
+
+    def test_gradle_toolchain_provisioning_configuration_is_idempotent(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            settings = root / "settings.gradle.kts"
+            settings.write_text(
+                '\n'.join(
+                    [
+                        "pluginManagement {",
+                        "    repositories { gradlePluginPortal() }",
+                        "}",
+                        "plugins {",
+                        '    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"',
+                        "}",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            main_module.configure_gradle_toolchain_provisioning(root)
+
+            self.assertEqual(
+                1,
+                settings.read_text(encoding="utf-8").count("org.gradle.toolchains.foojay-resolver-convention"),
+            )
+
     def test_verify_variants_runs_task_in_baseline_and_variant_after_modification(self):
         args = argparse.Namespace(
             repo_prefix="experiment",
@@ -158,6 +213,20 @@ class MainTest(unittest.TestCase):
                 output = Path(output_dir)
                 (output / "gradle").mkdir(parents=True)
                 (output / "gradle" / "libs.versions.toml").write_text('[versions]\nagp = "9.1.1"\n', encoding="utf-8")
+                (output / "settings.gradle.kts").write_text(
+                    '\n'.join(
+                        [
+                            "pluginManagement {",
+                            "    repositories { gradlePluginPortal() }",
+                            "}",
+                            "plugins {",
+                            '    id("com.example.settings") version "1.0.0"',
+                            "}",
+                            "",
+                        ]
+                    ),
+                    encoding="utf-8",
+                )
                 (output / "gradlew").write_text("#!/bin/sh\n", encoding="utf-8")
 
             verified_paths: list[Path] = []
@@ -175,6 +244,14 @@ class MainTest(unittest.TestCase):
             self.assertEqual([baseline, variant], verified_paths)
             self.assertIn('agp = "9.2.0"', (baseline / "gradle" / "libs.versions.toml").read_text(encoding="utf-8"))
             self.assertIn('agp = "9.2.1"', (variant / "gradle" / "libs.versions.toml").read_text(encoding="utf-8"))
+            self.assertIn(
+                "org.gradle.toolchains.foojay-resolver-convention",
+                (baseline / "settings.gradle.kts").read_text(encoding="utf-8"),
+            )
+            self.assertIn(
+                "org.gradle.toolchains.foojay-resolver-convention",
+                (variant / "settings.gradle.kts").read_text(encoding="utf-8"),
+            )
 
 
 if __name__ == "__main__":
