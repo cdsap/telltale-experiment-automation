@@ -1,3 +1,4 @@
+import base64
 import subprocess
 import tempfile
 import unittest
@@ -78,7 +79,8 @@ class GitManagerTest(unittest.TestCase):
             header_index = int(env["GIT_CONFIG_COUNT"]) - 1
             self.assertNotIn("secret-token", " ".join(command))
             self.assertEqual("http.https://github.com/.extraheader", env[f"GIT_CONFIG_KEY_{header_index}"])
-            self.assertEqual("Authorization: Bearer secret-token", env[f"GIT_CONFIG_VALUE_{header_index}"])
+            expected_credentials = base64.b64encode(b"x-access-token:secret-token").decode("ascii")
+            self.assertEqual(f"Authorization: Basic {expected_credentials}", env[f"GIT_CONFIG_VALUE_{header_index}"])
             self.assertEqual("0", env["GIT_TERMINAL_PROMPT"])
 
     def test_github_operations_require_owner_and_token(self):
