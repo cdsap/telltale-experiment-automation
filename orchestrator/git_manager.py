@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 import shutil
@@ -81,9 +82,10 @@ class GitManager:
         self._require_github_config()
         env = {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
         config_index = self._next_git_config_index(env)
+        encoded_credentials = base64.b64encode(f"x-access-token:{self.token}".encode("utf-8")).decode("ascii")
         env["GIT_CONFIG_COUNT"] = str(config_index + 1)
         env[f"GIT_CONFIG_KEY_{config_index}"] = "http.https://github.com/.extraheader"
-        env[f"GIT_CONFIG_VALUE_{config_index}"] = f"Authorization: Bearer {self.token}"
+        env[f"GIT_CONFIG_VALUE_{config_index}"] = f"Authorization: Basic {encoded_credentials}"
         subprocess.run(["git", "push", "-u", "origin", branch, "--force-with-lease"], cwd=repo_path, check=True, env=env)
 
     @staticmethod
