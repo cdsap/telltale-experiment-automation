@@ -31,6 +31,11 @@ jobs:
         with:
           python-version: "3.x"
 
+      - uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: "23"
+
       - name: Fetch ProjectGenerator
         run: |
           curl -L "https://github.com/cdsap/ProjectGenerator/releases/download/${PROJECT_GENERATOR_VERSION}/projectGenerator" --output projectGenerator
