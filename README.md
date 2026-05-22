@@ -122,7 +122,7 @@ Example:
 --project-option language=kts
 ```
 
-If no project options are provided, `modules=100` is used.
+If no project options are provided, `modules=100` and `develocity_url=https://ge.solutions-team.gradle.com/` are used. Override the Develocity URL with `--project-option develocity_url=<url>`.
 
 ## Dry Run
 
