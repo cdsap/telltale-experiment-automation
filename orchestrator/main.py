@@ -15,6 +15,7 @@ from orchestrator.trigger import Trigger, WorkflowDispatch
 
 FOOJAY_TOOLCHAIN_PLUGIN_ID = "org.gradle.toolchains.foojay-resolver-convention"
 FOOJAY_TOOLCHAIN_PLUGIN_VERSION = "1.0.0"
+DEFAULT_DEVELOCITY_URL = "https://ge.solutions-team.gradle.com/"
 
 
 def main() -> None:
@@ -204,7 +205,7 @@ def resolve_changes(args: argparse.Namespace) -> tuple[list[VersionChange], obje
 
 
 def parse_project_options(raw_options: list[str]) -> dict[str, object]:
-    options: dict[str, object] = {"modules": 100}
+    options: dict[str, object] = {"modules": 100, "develocity_url": DEFAULT_DEVELOCITY_URL}
     for raw_option in raw_options:
         if "=" not in raw_option:
             options[raw_option] = True
