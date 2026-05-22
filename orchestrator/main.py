@@ -16,6 +16,12 @@ from orchestrator.trigger import Trigger, WorkflowDispatch
 FOOJAY_TOOLCHAIN_PLUGIN_ID = "org.gradle.toolchains.foojay-resolver-convention"
 FOOJAY_TOOLCHAIN_PLUGIN_VERSION = "1.0.0"
 DEFAULT_DEVELOCITY_URL = "https://ge.solutions-team.gradle.com/"
+COMPONENT_TITLES = {
+    "agp": "AGP",
+    "gradle": "Gradle",
+    "kgp": "KGP",
+    "kotlin": "Kotlin",
+}
 
 
 def main() -> None:
@@ -100,7 +106,7 @@ def build_dispatch(
         os_args=args.os_args,
         java_args=args.java_args,
         extra_build_args=args.extra_build_args,
-        extra_report_args=args.extra_report_args,
+        extra_report_args=args.extra_report_args or default_extra_report_args(change, baseline_branch),
         snapshot_label_a=change.old_version or baseline_branch,
         snapshot_label_b=change.new_version,
     )
@@ -167,7 +173,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--os-args", default=os.environ.get("OS_ARGS", '{"variantA":"ubuntu-latest","variantB":"ubuntu-latest"}'))
     parser.add_argument("--java-args", default=os.environ.get("JAVA_ARGS", '{"javaVersionVariantA":"23","javaVersionVariantB":"23","javaVendorVariantA":"zulu","javaVendorVariantB":"zulu"}'))
     parser.add_argument("--extra-build-args", default=os.environ.get("EXTRA_BUILD_ARGS", '{"extraArgsVariantA":" ","extraArgsVariantB":" "}'))
-    parser.add_argument("--extra-report-args", default=os.environ.get("EXTRA_REPORT_ARGS", '{"deploy_results":"false","experiment_title":"","open_ai_request":"false","report_enabled":"true","tasktype_report":"true","taskpath_report":"true","kotlin_build_report":"false","process_report":"false","resource_usage_report":"true","gc_report":"false","only_cacheable_outcome":"false","threshold_task_duration":"1000"}'))
+    parser.add_argument("--extra-report-args", default=os.environ.get("EXTRA_REPORT_ARGS"))
     return parser.parse_args()
 
 
@@ -217,6 +223,32 @@ def parse_project_options(raw_options: list[str]) -> dict[str, object]:
 
 def parse_optional_int(value: str | None) -> int | None:
     return int(value) if value else None
+
+
+def default_extra_report_args(change: VersionChange, baseline_label: str) -> str:
+    old_version = change.old_version or baseline_label
+    title = f"{component_title(change.component)} {change.new_version} vs {old_version}"
+    return json.dumps(
+        {
+            "deploy_results": "true",
+            "experiment_title": title,
+            "open_ai_request": "true",
+            "report_enabled": "true",
+            "tasktype_report": "true",
+            "taskpath_report": "true",
+            "kotlin_build_report": "true",
+            "process_report": "true",
+            "resource_usage_report": "true",
+            "gc_report": "true",
+            "only_cacheable_outcome": "false",
+            "threshold_task_duration": "1000",
+        },
+        separators=(",", ":"),
+    )
+
+
+def component_title(component: str) -> str:
+    return COMPONENT_TITLES.get(component, component.upper())
 
 
 def apply_baseline_version(project_dir: Path, change: VersionChange) -> None:
