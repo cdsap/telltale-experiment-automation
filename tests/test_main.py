@@ -111,6 +111,64 @@ class MainTest(unittest.TestCase):
             self.assertEqual("cdsap/project", metadata["renovate_repo"])
             self.assertEqual("agp-9.2.0", metadata["variant_branch"])
 
+    def test_build_dispatch_uses_report_defaults_with_dynamic_title(self):
+        args = argparse.Namespace(
+            task="assembleDebug",
+            iterations=10,
+            mode="dependencies cache",
+            os_args="{}",
+            java_args="{}",
+            extra_build_args="{}",
+            extra_report_args=None,
+            telltale_repo="cdsap/Telltale",
+            workflow="experiment.yaml",
+            telltale_ref="main",
+            dry_run=True,
+            dispatch=False,
+        )
+
+        payload = main_module.build_dispatch(
+            VersionChange("agp", "9.2.0", "9.2.1"),
+            args,
+            "cdsap/experiment-agp-9.2.1",
+            "baseline",
+            "agp-9.2.1",
+        )
+
+        report_args = json.loads(payload["inputs"]["extra_report_args"])
+        self.assertEqual("true", report_args["deploy_results"])
+        self.assertEqual("true", report_args["open_ai_request"])
+        self.assertEqual("true", report_args["kotlin_build_report"])
+        self.assertEqual("true", report_args["process_report"])
+        self.assertEqual("true", report_args["gc_report"])
+        self.assertEqual("AGP 9.2.1 vs 9.2.0", report_args["experiment_title"])
+
+    def test_build_dispatch_preserves_explicit_report_args_override(self):
+        args = argparse.Namespace(
+            task="assembleDebug",
+            iterations=10,
+            mode="dependencies cache",
+            os_args="{}",
+            java_args="{}",
+            extra_build_args="{}",
+            extra_report_args='{"experiment_title":"custom"}',
+            telltale_repo="cdsap/Telltale",
+            workflow="experiment.yaml",
+            telltale_ref="main",
+            dry_run=True,
+            dispatch=False,
+        )
+
+        payload = main_module.build_dispatch(
+            VersionChange("agp", "9.2.0", "9.2.1"),
+            args,
+            "cdsap/experiment-agp-9.2.1",
+            "baseline",
+            "agp-9.2.1",
+        )
+
+        self.assertEqual('{"experiment_title":"custom"}', payload["inputs"]["extra_report_args"])
+
     def test_apply_baseline_version_only_when_old_version_is_known(self):
         with mock.patch.object(main_module, "Modifier") as modifier:
             main_module.apply_baseline_version(Path("project"), VersionChange("agp", None, "9.2.1"))
