@@ -169,7 +169,7 @@ GITHUB_TOKEN=... python3 -m orchestrator.main \
   --repo-prefix experiment \
   --project-option modules=100 \
   --task assembleDebug \
-  --iterations 10 \
+  --iterations 30 \
   --mode "dependencies cache" \
   --push \
   --dispatch
@@ -205,11 +205,13 @@ The dispatch payload includes the inputs required by Telltale's `experiment.yaml
 - `snapshot_label_a`
 - `snapshot_label_b`
 
+When `--extra-report-args`/`EXTRA_REPORT_ARGS` is not set, the orchestrator enables result deployment, OpenAI report generation, Kotlin/process/resource/GC report sections, and uses a dynamic report title such as `AGP 9.2.1 vs 9.2.0`.
+
 Defaults:
 
 ```text
 task: assembleDebug
-iterations: 10
+iterations: 30
 mode: dependencies cache
 telltale repo: cdsap/Telltale
 workflow: experiment.yaml
@@ -224,7 +226,7 @@ The JSON-string inputs can be overridden:
 --os-args '{"variantA":"ubuntu-latest","variantB":"ubuntu-latest"}' \
 --java-args '{"javaVersionVariantA":"23","javaVersionVariantB":"23","javaVendorVariantA":"zulu","javaVendorVariantB":"zulu"}' \
 --extra-build-args '{"extraArgsVariantA":" ","extraArgsVariantB":" "}' \
---extra-report-args '{"deploy_results":"false","experiment_title":"","open_ai_request":"false","report_enabled":"true","tasktype_report":"true","taskpath_report":"true","kotlin_build_report":"false","process_report":"false","resource_usage_report":"true","gc_report":"false","only_cacheable_outcome":"false","threshold_task_duration":"1000"}'
+--extra-report-args '{"deploy_results":"true","experiment_title":"AGP 9.2.1 vs 9.2.0","open_ai_request":"true","report_enabled":"true","tasktype_report":"true","taskpath_report":"true","kotlin_build_report":"true","process_report":"true","resource_usage_report":"true","gc_report":"true","only_cacheable_outcome":"false","threshold_task_duration":"1000"}'
 ```
 
 ## Environment Variables

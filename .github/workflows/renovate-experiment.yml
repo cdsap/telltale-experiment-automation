@@ -54,7 +54,7 @@ jobs:
             --project-option modules=100 \
             --task assembleDebug \
             --verify-variants \
-            --iterations 10 \
+            --iterations 30 \
             --mode "dependencies cache" \
             --push \
             --dispatch

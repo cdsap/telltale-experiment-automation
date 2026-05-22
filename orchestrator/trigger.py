@@ -9,7 +9,7 @@ class WorkflowDispatch:
     variant_a: str
     variant_b: str
     task: str = "assembleDebug"
-    iterations: int = 10
+    iterations: int = 30
     mode: str = "dependencies cache"
     os_args: str = '{"variantA":"ubuntu-latest","variantB":"ubuntu-latest"}'
     java_args: str = '{"javaVersionVariantA":"23","javaVersionVariantB":"23","javaVendorVariantA":"zulu","javaVendorVariantB":"zulu"}'
