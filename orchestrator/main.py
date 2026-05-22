@@ -165,7 +165,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--verify-variants", action="store_true", help="Run --task in both baseline and new-version projects before creating branches.")
     parser.add_argument("--baseline-branch", default="baseline")
     parser.add_argument("--task", default=os.environ.get("EXPERIMENT_TASK", "assembleDebug"))
-    parser.add_argument("--iterations", type=int, default=int(os.environ.get("EXPERIMENT_ITERATIONS", "10")))
+    parser.add_argument("--iterations", type=int, default=int(os.environ.get("EXPERIMENT_ITERATIONS", "30")))
     parser.add_argument("--mode", default=os.environ.get("EXPERIMENT_MODE", "dependencies cache"))
     parser.add_argument("--telltale-repo", default=os.environ.get("TELLTALE_REPO", "cdsap/Telltale"))
     parser.add_argument("--workflow", default=os.environ.get("TELLTALE_WORKFLOW", "experiment.yaml"))

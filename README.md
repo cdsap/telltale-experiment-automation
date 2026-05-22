@@ -169,7 +169,7 @@ GITHUB_TOKEN=... python3 -m orchestrator.main \
   --repo-prefix experiment \
   --project-option modules=100 \
   --task assembleDebug \
-  --iterations 10 \
+  --iterations 30 \
   --mode "dependencies cache" \
   --push \
   --dispatch
@@ -211,7 +211,7 @@ Defaults:
 
 ```text
 task: assembleDebug
-iterations: 10
+iterations: 30
 mode: dependencies cache
 telltale repo: cdsap/Telltale
 workflow: experiment.yaml
