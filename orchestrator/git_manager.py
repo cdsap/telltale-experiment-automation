@@ -35,6 +35,36 @@ class GitManager:
 
         return f"https://github.com/{self.github_owner}/{repo_name}.git"
 
+    def ensure_github_repo(self, repo_name: str, private: bool = False) -> str:
+        self._require_github_config()
+
+        if not self.github_repo_exists(repo_name):
+            self.create_github_repo(repo_name, private=private)
+        if not self.github_repo_exists(repo_name):
+            raise RuntimeError(f"GitHub repository {self.github_owner}/{repo_name} was not found after creation attempt")
+
+        return f"https://github.com/{self.github_owner}/{repo_name}.git"
+
+    def github_repo_exists(self, repo_name: str) -> bool:
+        self._require_github_config()
+
+        request = urllib.request.Request(
+            f"https://api.github.com/repos/{self.github_owner}/{repo_name}",
+            headers={
+                "Accept": "application/vnd.github+json",
+                "Authorization": f"Bearer {self.token}",
+                "X-GitHub-Api-Version": "2022-11-28",
+            },
+            method="GET",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=30):
+                return True
+        except urllib.error.HTTPError as error:
+            if error.code == 404:
+                return False
+            raise
+
     def _post_create_repo(self, api_url: str, payload: bytes) -> None:
         request = urllib.request.Request(
             api_url,
