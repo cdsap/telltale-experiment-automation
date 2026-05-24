@@ -311,6 +311,63 @@ class MainTest(unittest.TestCase):
                 (variant / "settings.gradle.kts").read_text(encoding="utf-8"),
             )
 
+    def test_push_ensures_github_repo_before_project_generation(self):
+        args = argparse.Namespace(
+            repo_prefix="experiment",
+            baseline_branch="baseline",
+            work_dir="work",
+            repo_base_dir="repos",
+            project_generator="projectGenerator",
+            verify_baseline=False,
+            verify_variants=False,
+            task="assembleDebug",
+            github_token="secret-token",
+            github_owner="cdsap",
+            push=True,
+            private_repo=False,
+            dispatch=False,
+            dry_run=False,
+            telltale_repo="cdsap/Telltale",
+            workflow="experiment.yaml",
+            telltale_ref="main",
+            os_args="{}",
+            java_args="{}",
+            extra_build_args="{}",
+            extra_report_args="{}",
+            iterations=10,
+            mode="dependencies cache",
+            renovate_pr_number=None,
+            renovate_repo=None,
+        )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            args.work_dir = str(root / "work")
+            args.repo_base_dir = str(root / "repos")
+            events: list[str] = []
+            git_manager = mock.Mock()
+            git_manager.ensure_github_repo.side_effect = lambda *_args, **_kwargs: events.append("ensure")
+            git_manager.create_local_repo.side_effect = lambda repo_name: root / "repos" / repo_name
+
+            def generate_project(output_dir, _options):
+                events.append("generate")
+                output = Path(output_dir)
+                (output / "gradle").mkdir(parents=True)
+                (output / "gradle" / "libs.versions.toml").write_text('[versions]\nagp = "9.1.1"\n', encoding="utf-8")
+                (output / "settings.gradle.kts").write_text("", encoding="utf-8")
+
+            with (
+                mock.patch.object(main_module, "GitManager", return_value=git_manager),
+                mock.patch.object(main_module.Generator, "generate_project", side_effect=generate_project),
+                mock.patch.object(main_module, "build_dispatch", return_value={"ok": True}),
+                mock.patch("builtins.print"),
+            ):
+                main_module.run_experiment(VersionChange("agp", "9.2.0", "9.2.1"), args, {})
+
+        self.assertEqual(["ensure", "generate"], events)
+        git_manager.configure_remote.assert_called_once()
+        self.assertEqual(2, git_manager.commit_branch_from_directory.call_count)
+
 
 if __name__ == "__main__":
     unittest.main()

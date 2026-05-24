@@ -93,6 +93,29 @@ class GitManagerTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 manager.create_github_repo("experiment-agp-9.2.0")
 
+    def test_ensure_github_repo_creates_missing_repo_and_verifies_it_exists(self):
+        manager = GitManager("repos", github_owner="cdsap", token="secret-token")
+
+        with (
+            mock.patch.object(manager, "github_repo_exists", side_effect=[False, True]) as exists,
+            mock.patch.object(manager, "create_github_repo") as create,
+        ):
+            remote = manager.ensure_github_repo("experiment-agp-9.2.0", private=True)
+
+        self.assertEqual("https://github.com/cdsap/experiment-agp-9.2.0.git", remote)
+        self.assertEqual(2, exists.call_count)
+        create.assert_called_once_with("experiment-agp-9.2.0", private=True)
+
+    def test_ensure_github_repo_fails_when_repo_is_still_missing_after_create(self):
+        manager = GitManager("repos", github_owner="cdsap", token="secret-token")
+
+        with (
+            mock.patch.object(manager, "github_repo_exists", side_effect=[False, False]),
+            mock.patch.object(manager, "create_github_repo"),
+        ):
+            with self.assertRaises(RuntimeError):
+                manager.ensure_github_repo("experiment-agp-9.2.0")
+
 
 if __name__ == "__main__":
     unittest.main()

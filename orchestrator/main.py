@@ -56,6 +56,11 @@ def run_experiment(change: VersionChange, args: argparse.Namespace, project_opti
         print(json.dumps(payload, indent=2, sort_keys=True))
         return
 
+    token = args.github_token or os.environ.get("GITHUB_TOKEN")
+    git_manager = GitManager(args.repo_base_dir, github_owner=args.github_owner, token=token)
+    if args.push:
+        git_manager.ensure_github_repo(experiment_name, private=args.private_repo)
+
     if workspace.exists():
         shutil.rmtree(workspace)
     workspace.mkdir(parents=True, exist_ok=True)
@@ -72,12 +77,9 @@ def run_experiment(change: VersionChange, args: argparse.Namespace, project_opti
     write_experiment_metadata(baseline_dir, change, args, experiment_name, baseline_branch, variant_branch)
     write_experiment_metadata(variant_dir, change, args, experiment_name, baseline_branch, variant_branch)
 
-    token = args.github_token or os.environ.get("GITHUB_TOKEN")
-    git_manager = GitManager(args.repo_base_dir, github_owner=args.github_owner, token=token)
     repo_path = git_manager.create_local_repo(experiment_name)
 
     if args.push:
-        git_manager.create_github_repo(experiment_name, private=args.private_repo)
         git_manager.configure_remote(repo_path, experiment_name)
 
     git_manager.commit_branch_from_directory(repo_path, baseline_branch, baseline_dir, f"Add baseline for {experiment_name}", push=args.push)
