@@ -107,7 +107,7 @@ Each generated branch includes `.experiment-automation.json` with the component,
 Install the ProjectGenerator binary and either put it on `PATH` or pass it with `--project-generator`.
 
 ```bash
-curl -L https://github.com/cdsap/ProjectGenerator/releases/download/v0.6.2/projectGenerator --output projectGenerator
+curl -L https://github.com/cdsap/ProjectGenerator/releases/latest/download/projectGenerator --output projectGenerator
 chmod 0757 projectGenerator
 ```
 
