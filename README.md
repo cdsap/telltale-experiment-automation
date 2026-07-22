@@ -44,7 +44,8 @@ The orchestrator reads a JSON object where keys are stack components and values 
 {
   "agp": "9.2.0",
   "kotlin": "2.3.20",
-  "gradle": "9.5.0"
+  "gradle": "9.5.0",
+  "projectGenerator": "v0.6.4"
 }
 ```
 
@@ -53,6 +54,8 @@ Supported component keys:
 - `agp`
 - `kotlin` or `kgp`
 - `gradle`
+
+`projectGenerator` pins the CLI used to generate baseline projects, but it does not create a Telltale experiment by itself.
 
 By default the current versions are read from `versions_to_monitor.json`, and the last processed state is written to `.orchestrator-state/versions.json`.
 
@@ -66,7 +69,8 @@ Renovate should update the Telltale version manifest, not a generated experiment
 {
   "agp": "9.2.0",
   "kotlin": "2.3.20",
-  "gradle": "9.5.0"
+  "gradle": "9.5.0",
+  "projectGenerator": "v0.6.4"
 }
 ```
 
@@ -107,7 +111,7 @@ Each generated branch includes `.experiment-automation.json` with the component,
 Install the ProjectGenerator binary and either put it on `PATH` or pass it with `--project-generator`.
 
 ```bash
-curl -L https://github.com/cdsap/ProjectGenerator/releases/latest/download/projectGenerator --output projectGenerator
+curl -L https://github.com/cdsap/ProjectGenerator/releases/download/v0.6.4/projectGenerator --output projectGenerator
 chmod 0757 projectGenerator
 ```
 

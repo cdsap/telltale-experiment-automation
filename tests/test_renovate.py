@@ -15,12 +15,12 @@ class RenovateTest(unittest.TestCase):
             self._git(repo, "config", "user.name", "test")
             self._git(repo, "config", "user.email", "test@example.invalid")
             versions = repo / "versions_to_monitor.json"
-            versions.write_text(json.dumps({"agp": "9.1.0", "kotlin": "2.3.10", "gradle": "9.4.0"}), encoding="utf-8")
+            versions.write_text(json.dumps({"agp": "9.1.0", "kotlin": "2.3.10", "gradle": "9.4.0", "projectGenerator": "v0.6.3"}), encoding="utf-8")
             self._git(repo, "add", ".")
             self._git(repo, "commit", "-m", "base")
             base = self._git(repo, "rev-parse", "HEAD").stdout.strip()
 
-            versions.write_text(json.dumps({"agp": "9.2.0", "kotlin": "2.3.10", "gradle": "9.5.0"}), encoding="utf-8")
+            versions.write_text(json.dumps({"agp": "9.2.0", "kotlin": "2.3.10", "gradle": "9.5.0", "projectGenerator": "v0.6.4"}), encoding="utf-8")
             self._git(repo, "commit", "-am", "renovate stack versions")
             head = self._git(repo, "rev-parse", "HEAD").stdout.strip()
 

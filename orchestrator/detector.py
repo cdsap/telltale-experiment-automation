@@ -12,6 +12,14 @@ class VersionChange:
     new_version: str
 
 
+SUPPORTED_COMPONENTS = {
+    "agp": "agp",
+    "kotlin": "kotlin",
+    "kgp": "kotlin",
+    "gradle": "gradle",
+}
+
+
 class Detector:
     def __init__(self, versions_file_path: str | os.PathLike[str], state_file_path: str | os.PathLike[str] | None = None):
         self.versions_file_path = Path(versions_file_path)
@@ -21,11 +29,19 @@ class Detector:
         current_versions = self._load_versions(self.versions_file_path)
         last_seen_versions = self._load_versions(self.state_file_path) if self.state_file_path else {}
 
-        changes = [
-            VersionChange(component=component, old_version=last_seen_versions.get(component), new_version=str(version))
-            for component, version in current_versions.items()
-            if str(last_seen_versions.get(component)) != str(version)
-        ]
+        changes = []
+        for key, version in current_versions.items():
+            component = SUPPORTED_COMPONENTS.get(key.lower())
+            if not component:
+                continue
+            if str(last_seen_versions.get(key)) != str(version):
+                changes.append(
+                    VersionChange(
+                        component=component,
+                        old_version=last_seen_versions.get(key),
+                        new_version=str(version),
+                    )
+                )
 
         if changes and persist and self.state_file_path:
             self._write_state(current_versions)
