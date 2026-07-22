@@ -3,15 +3,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from orchestrator.detector import VersionChange
-
-
-SUPPORTED_COMPONENTS = {
-    "agp": "agp",
-    "kotlin": "kotlin",
-    "kgp": "kotlin",
-    "gradle": "gradle",
-}
+from orchestrator.detector import SUPPORTED_COMPONENTS, VersionChange
 
 
 def detect_changes_from_git(

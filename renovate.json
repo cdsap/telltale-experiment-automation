@@ -44,6 +44,19 @@
       "datasourceTemplate": "gradle-version",
       "depNameTemplate": "gradle",
       "versioningTemplate": "gradle"
+    },
+    {
+      "customType": "regex",
+      "description": "Update ProjectGenerator CLI used by experiment generation",
+      "managerFilePatterns": [
+        "/^versions_to_monitor\\.json$/"
+      ],
+      "matchStrings": [
+        "\"projectGenerator\"\\s*:\\s*\"(?<currentValue>[^\"]+)\""
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "cdsap/ProjectGenerator",
+      "versioningTemplate": "semver"
     }
   ],
   "packageRules": [

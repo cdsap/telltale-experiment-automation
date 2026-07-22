@@ -37,7 +37,8 @@ jobs:
 
       - name: Fetch ProjectGenerator
         run: |
-          curl -L "https://github.com/cdsap/ProjectGenerator/releases/latest/download/projectGenerator" --output projectGenerator
+          PROJECT_GENERATOR_VERSION="$(python3 -c 'import json; print(json.load(open("versions_to_monitor.json"))["projectGenerator"])')"
+          curl -L "https://github.com/cdsap/ProjectGenerator/releases/download/${PROJECT_GENERATOR_VERSION}/projectGenerator" --output projectGenerator
           chmod 0755 projectGenerator
 
       - name: Create and dispatch experiment
