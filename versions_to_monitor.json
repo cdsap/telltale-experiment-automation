@@ -1,6 +1,6 @@
 {
   "agp": "9.4.0",
   "gradle": "9.7.1",
-  "kotlin": "2.4.10",
+  "kotlin": "2.4.20",
   "projectGenerator": "v0.6.6"
 }
