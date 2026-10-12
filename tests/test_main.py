@@ -207,6 +207,45 @@ class MainTest(unittest.TestCase):
                 settings.read_text(encoding="utf-8"),
             )
 
+    def test_configures_experiment_reporting_before_builds(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "build.gradle.kts").write_text(
+                "plugins {\n    alias(libs.plugins.kotlin.jvm) apply false\n}\n",
+                encoding="utf-8",
+            )
+            (root / "gradle.properties").write_text(
+                "org.gradle.jvmargs=-Xmx5g\nandroid.useAndroidX=true\n",
+                encoding="utf-8",
+            )
+
+            main_module.configure_experiment_reporting(root)
+
+            build = (root / "build.gradle.kts").read_text(encoding="utf-8")
+            properties = (root / "gradle.properties").read_text(encoding="utf-8")
+            self.assertIn('id("io.github.cdsap.kotlinprocess") version "0.2.0"', build)
+            self.assertIn('id("io.github.cdsap.gradleprocess") version "0.2.0"', build)
+            self.assertIn('id("io.github.cdsap.gcreport") version "0.1.0"', build)
+            self.assertIn('logs = listOf("gradle_gc.log", "kotlin_gc.log")', build)
+            self.assertIn("org.gradle.jvmargs=-Xlog:gc*:file=/home/runner/work/Telltale/Telltale/gradle_gc.log", properties)
+            self.assertIn("-Xlog:gc*:file=/home/runner/work/Telltale/Telltale/kotlin_gc.log", properties)
+            self.assertIn("kotlin.build.report.output=build_scan", properties)
+
+    def test_configures_experiment_reporting_idempotently(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "build.gradle.kts").write_text("plugins {\n}\n", encoding="utf-8")
+
+            main_module.configure_experiment_reporting(root)
+            main_module.configure_experiment_reporting(root)
+
+            build = (root / "build.gradle.kts").read_text(encoding="utf-8")
+            properties = (root / "gradle.properties").read_text(encoding="utf-8")
+            self.assertEqual(1, build.count("io.github.cdsap.kotlinprocess"))
+            self.assertEqual(1, build.count("gcReport {"))
+            self.assertEqual(1, properties.count("org.gradle.jvmargs="))
+            self.assertEqual(1, properties.count("kotlin.build.report.output="))
+
     def test_gradle_toolchain_provisioning_configuration_is_idempotent(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -285,6 +324,8 @@ class MainTest(unittest.TestCase):
                     ),
                     encoding="utf-8",
                 )
+                (output / "build.gradle.kts").write_text("plugins {\n}\n", encoding="utf-8")
+                (output / "gradle.properties").write_text("org.gradle.jvmargs=-Xmx5g\n", encoding="utf-8")
                 (output / "gradlew").write_text("#!/bin/sh\n", encoding="utf-8")
 
             verified_paths: list[Path] = []
@@ -309,6 +350,14 @@ class MainTest(unittest.TestCase):
             self.assertIn(
                 "org.gradle.toolchains.foojay-resolver-convention",
                 (variant / "settings.gradle.kts").read_text(encoding="utf-8"),
+            )
+            self.assertIn(
+                "io.github.cdsap.gcreport",
+                (baseline / "build.gradle.kts").read_text(encoding="utf-8"),
+            )
+            self.assertIn(
+                "kotlin.build.report.output=build_scan",
+                (variant / "gradle.properties").read_text(encoding="utf-8"),
             )
 
     def test_push_ensures_github_repo_before_project_generation(self):
