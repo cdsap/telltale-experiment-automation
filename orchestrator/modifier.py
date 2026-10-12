@@ -77,7 +77,10 @@ class Modifier:
         toml_path.write_text("".join(updated_lines), encoding="utf-8")
 
     def _update_inline_kotlin_plugin_versions(self, new_version: str) -> None:
-        plugin_id = re.compile(r'id\("org\.jetbrains\.kotlin(?:\.[^"]+)?"\)\s+version\s+"[^"]+"')
+        plugin_id = re.compile(
+            r'(?:id\("org\.jetbrains\.kotlin(?:\.[^"]+)?"\)|kotlin\("[^"]+"\))'
+            r'\s+version\s+"[^"]+"'
+        )
         for path in self.working_dir.rglob("*.gradle.kts"):
             original = path.read_text(encoding="utf-8")
             updated = plugin_id.sub(lambda match: re.sub(r'version\s+"[^"]+"', f'version "{new_version}"', match.group(0)), original)
