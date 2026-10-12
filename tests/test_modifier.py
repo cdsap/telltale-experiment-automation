@@ -48,6 +48,20 @@ class ModifierTest(unittest.TestCase):
             self.assertIn('kotlin = "2.3.20"', versions.read_text(encoding="utf-8"))
             self.assertIn('version "2.3.20"', build_file.read_text(encoding="utf-8"))
 
+    def test_updates_convention_plugin_kotlin_jvm_version(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            versions = root / "gradle" / "libs.versions.toml"
+            versions.parent.mkdir()
+            versions.write_text('[versions]\nkotlin = "2.3.10"\n', encoding="utf-8")
+            build_file = root / "build-logic" / "convention" / "build.gradle.kts"
+            build_file.parent.mkdir(parents=True)
+            build_file.write_text('plugins {\n    kotlin("jvm") version "2.3.10"\n}\n', encoding="utf-8")
+
+            Modifier(root).update_kgp("2.3.20")
+
+            self.assertIn('kotlin("jvm") version "2.3.20"', build_file.read_text(encoding="utf-8"))
+
     def test_gradle_wrapper_update_works_with_relative_working_dir(self):
         with tempfile.TemporaryDirectory(dir=Path.cwd()) as tmp:
             root = Path(tmp)
