@@ -227,9 +227,15 @@ class MainTest(unittest.TestCase):
             self.assertIn('id("io.github.cdsap.gradleprocess") version "0.2.0"', build)
             self.assertIn('id("io.github.cdsap.gcreport") version "0.1.0"', build)
             self.assertIn('logs = listOf("gradle_gc.log", "kotlin_gc.log")', build)
+            self.assertIn("org.gradle.jvmargs=-Xmx5g", properties)
+            self.assertNotIn("-Xlog:gc", properties)
+            self.assertIn("kotlin.build.report.output=build_scan", properties)
+
+            main_module.configure_gc_logging(root)
+
+            properties = (root / "gradle.properties").read_text(encoding="utf-8")
             self.assertIn("org.gradle.jvmargs=-Xlog:gc*:file=/home/runner/work/Telltale/Telltale/gradle_gc.log", properties)
             self.assertIn("-Xlog:gc*:file=/home/runner/work/Telltale/Telltale/kotlin_gc.log", properties)
-            self.assertIn("kotlin.build.report.output=build_scan", properties)
 
     def test_configures_experiment_reporting_idempotently(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -243,8 +249,14 @@ class MainTest(unittest.TestCase):
             properties = (root / "gradle.properties").read_text(encoding="utf-8")
             self.assertEqual(1, build.count("io.github.cdsap.kotlinprocess"))
             self.assertEqual(1, build.count("gcReport {"))
-            self.assertEqual(1, properties.count("org.gradle.jvmargs="))
+            self.assertEqual(0, properties.count("org.gradle.jvmargs="))
             self.assertEqual(1, properties.count("kotlin.build.report.output="))
+
+            main_module.configure_gc_logging(root)
+            main_module.configure_gc_logging(root)
+
+            properties = (root / "gradle.properties").read_text(encoding="utf-8")
+            self.assertEqual(1, properties.count("org.gradle.jvmargs="))
 
     def test_gradle_toolchain_provisioning_configuration_is_idempotent(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -329,10 +341,15 @@ class MainTest(unittest.TestCase):
                 (output / "gradlew").write_text("#!/bin/sh\n", encoding="utf-8")
 
             verified_paths: list[Path] = []
+            verified_properties: list[str] = []
+
+            def verify(path, _task):
+                verified_paths.append(Path(path))
+                verified_properties.append((Path(path) / "gradle.properties").read_text(encoding="utf-8"))
 
             with (
                 mock.patch.object(main_module.Generator, "generate_project", side_effect=generate_project),
-                mock.patch.object(main_module, "verify_gradle_task", side_effect=lambda path, _task: verified_paths.append(Path(path))),
+                mock.patch.object(main_module, "verify_gradle_task", side_effect=verify),
                 mock.patch.object(main_module, "build_dispatch", return_value={"ok": True}),
                 mock.patch("builtins.print"),
             ):
@@ -341,6 +358,7 @@ class MainTest(unittest.TestCase):
             baseline = root / "work" / "experiment-agp-9.2.1" / "baseline"
             variant = root / "work" / "experiment-agp-9.2.1" / "new-version"
             self.assertEqual([baseline, variant], verified_paths)
+            self.assertTrue(all("-Xlog:gc" not in properties for properties in verified_properties))
             self.assertIn('agp = "9.2.0"', (baseline / "gradle" / "libs.versions.toml").read_text(encoding="utf-8"))
             self.assertIn('agp = "9.2.1"', (variant / "gradle" / "libs.versions.toml").read_text(encoding="utf-8"))
             self.assertIn(
@@ -359,6 +377,8 @@ class MainTest(unittest.TestCase):
                 "kotlin.build.report.output=build_scan",
                 (variant / "gradle.properties").read_text(encoding="utf-8"),
             )
+            self.assertIn("-Xlog:gc", (baseline / "gradle.properties").read_text(encoding="utf-8"))
+            self.assertIn("-Xlog:gc", (variant / "gradle.properties").read_text(encoding="utf-8"))
 
     def test_push_ensures_github_repo_before_project_generation(self):
         args = argparse.Namespace(

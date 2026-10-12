@@ -87,6 +87,8 @@ def run_experiment(change: VersionChange, args: argparse.Namespace, project_opti
         verify_gradle_task(baseline_dir, args.task)
     if args.verify_variants:
         verify_gradle_task(variant_dir, args.task)
+    configure_gc_logging(baseline_dir)
+    configure_gc_logging(variant_dir)
     write_experiment_metadata(baseline_dir, change, args, experiment_name, baseline_branch, variant_branch)
     write_experiment_metadata(variant_dir, change, args, experiment_name, baseline_branch, variant_branch)
 
@@ -328,9 +330,17 @@ def configure_experiment_reporting(project_dir: Path) -> None:
 
     properties_file = project_dir / "gradle.properties"
     properties = properties_file.read_text(encoding="utf-8") if properties_file.exists() else ""
-    properties = _set_gradle_property(properties, "org.gradle.jvmargs", GRADLE_JVM_ARGS)
     properties = _set_gradle_property(properties, "kotlin.build.report.output", "build_scan")
     properties_file.write_text(properties, encoding="utf-8")
+
+
+def configure_gc_logging(project_dir: Path) -> None:
+    properties_file = project_dir / "gradle.properties"
+    properties = properties_file.read_text(encoding="utf-8") if properties_file.exists() else ""
+    properties_file.write_text(
+        _set_gradle_property(properties, "org.gradle.jvmargs", GRADLE_JVM_ARGS),
+        encoding="utf-8",
+    )
 
 
 def _set_gradle_property(contents: str, key: str, value: str) -> str:
