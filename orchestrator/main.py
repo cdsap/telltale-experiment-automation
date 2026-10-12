@@ -15,6 +15,18 @@ from orchestrator.trigger import Trigger, WorkflowDispatch
 
 FOOJAY_TOOLCHAIN_PLUGIN_ID = "org.gradle.toolchains.foojay-resolver-convention"
 FOOJAY_TOOLCHAIN_PLUGIN_VERSION = "1.0.0"
+REPORT_PLUGIN_LINES = (
+    '    id("io.github.cdsap.kotlinprocess") version "0.2.0"\n',
+    '    id("io.github.cdsap.gradleprocess") version "0.2.0"\n',
+    '    id("io.github.cdsap.gcreport") version "0.1.0"\n',
+)
+GRADLE_JVM_ARGS = (
+    "-Xlog:gc*:file=/home/runner/work/Telltale/Telltale/gradle_gc.log "
+    "-Xmx6g -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8 "
+    "-XX:MaxMetaspaceSize=1g "
+    "-Dkotlin.daemon.jvm.options=-Xmx5g,-XX:MaxMetaspaceSize=1g,-Dfile.encoding=UTF-8,"
+    "-Xlog:gc*:file=/home/runner/work/Telltale/Telltale/kotlin_gc.log"
+)
 DEFAULT_DEVELOCITY_URL = "https://ge.solutions-team.gradle.com/"
 COMPONENT_TITLES = {
     "agp": "AGP",
@@ -67,6 +79,7 @@ def run_experiment(change: VersionChange, args: argparse.Namespace, project_opti
 
     Generator(args.project_generator).generate_project(baseline_dir, project_options)
     configure_gradle_toolchain_provisioning(baseline_dir)
+    configure_experiment_reporting(baseline_dir)
     apply_baseline_version(baseline_dir, change)
     shutil.copytree(baseline_dir, variant_dir)
     Modifier(variant_dir).apply_change(change.component, change.new_version)
@@ -74,6 +87,8 @@ def run_experiment(change: VersionChange, args: argparse.Namespace, project_opti
         verify_gradle_task(baseline_dir, args.task)
     if args.verify_variants:
         verify_gradle_task(variant_dir, args.task)
+    configure_gc_logging(baseline_dir)
+    configure_gc_logging(variant_dir)
     write_experiment_metadata(baseline_dir, change, args, experiment_name, baseline_branch, variant_branch)
     write_experiment_metadata(variant_dir, change, args, experiment_name, baseline_branch, variant_branch)
 
@@ -285,6 +300,61 @@ def configure_gradle_toolchain_provisioning(project_dir: Path) -> None:
     ]
     lines[insert_at:insert_at] = plugin_block
     settings_file.write_text("".join(lines), encoding="utf-8")
+
+
+def configure_experiment_reporting(project_dir: Path) -> None:
+    build_file = project_dir / "build.gradle.kts"
+    if build_file.exists():
+        contents = build_file.read_text(encoding="utf-8")
+        missing_plugins = tuple(line for line in REPORT_PLUGIN_LINES if line.strip().split('"')[1] not in contents)
+        if missing_plugins:
+            lines = contents.splitlines(keepends=True)
+            plugins_start = next((index for index, line in enumerate(lines) if line.strip() == "plugins {"), None)
+            if plugins_start is not None:
+                depth = 0
+                for index in range(plugins_start, len(lines)):
+                    depth += lines[index].count("{")
+                    depth -= lines[index].count("}")
+                    if index > plugins_start and depth == 0:
+                        lines[index:index] = list(missing_plugins)
+                        contents = "".join(lines)
+                        build_file.write_text(contents, encoding="utf-8")
+                        break
+
+        if "gcReport {" not in contents:
+            separator = "\n" if contents.endswith("\n") else "\n\n"
+            build_file.write_text(
+                contents + separator + 'gcReport {\n    logs = listOf("gradle_gc.log", "kotlin_gc.log")\n}\n',
+                encoding="utf-8",
+            )
+
+    properties_file = project_dir / "gradle.properties"
+    properties = properties_file.read_text(encoding="utf-8") if properties_file.exists() else ""
+    properties = _set_gradle_property(properties, "kotlin.build.report.output", "build_scan")
+    properties_file.write_text(properties, encoding="utf-8")
+
+
+def configure_gc_logging(project_dir: Path) -> None:
+    properties_file = project_dir / "gradle.properties"
+    properties = properties_file.read_text(encoding="utf-8") if properties_file.exists() else ""
+    properties_file.write_text(
+        _set_gradle_property(properties, "org.gradle.jvmargs", GRADLE_JVM_ARGS),
+        encoding="utf-8",
+    )
+
+
+def _set_gradle_property(contents: str, key: str, value: str) -> str:
+    lines = contents.splitlines(keepends=True)
+    replacement = f"{key}={value}\n"
+    for index, line in enumerate(lines):
+        if line.startswith(f"{key}="):
+            lines[index] = replacement
+            return "".join(lines)
+
+    if lines and not lines[-1].endswith("\n"):
+        lines[-1] += "\n"
+    lines.append(replacement)
+    return "".join(lines)
 
 
 def _settings_plugin_block_insert_index(lines: list[str]) -> int:
