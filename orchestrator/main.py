@@ -27,7 +27,7 @@ GRADLE_JVM_ARGS = (
     "-Dkotlin.daemon.jvm.options=-Xmx5g,-XX:MaxMetaspaceSize=1g,-Dfile.encoding=UTF-8,"
     "-Xlog:gc*:file=/home/runner/work/Telltale/Telltale/kotlin_gc.log"
 )
-DEFAULT_DEVELOCITY_URL = "https://ge.solutions-team.gradle.com/"
+DEFAULT_DEVELOCITY_URL = "https://solutions.develocity.cloud/"
 COMPONENT_TITLES = {
     "agp": "AGP",
     "gradle": "Gradle",
